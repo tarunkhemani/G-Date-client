@@ -247,7 +247,7 @@ const ChatPage = ({ student, currentUser, onBack }) => {
   const scrollRef = useRef();
 
   useEffect(() => {
-    socket.current = io("ws://localhost:5000");
+    socket.current = io(process.env.REACT_APP_SOCKET_URL || "ws://localhost:5000");
     socket.current.on("getMessage", (data) => {
       setMessages((prev) => [...prev, { senderId: data.senderId, text: data.text, createdAt: Date.now() }]);
     });
@@ -370,7 +370,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversations, setConversations] = useState([]);
 
-  axios.defaults.baseURL = 'http://localhost:5000/api';
+  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
   const navigateToSignUp = () => setCurrentPage('profileForm');
   

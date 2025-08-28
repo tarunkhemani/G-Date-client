@@ -267,6 +267,8 @@ const AllChatsPage = ({ chatPartners, onChat, onBack }) => (
 );
 
 // --- Chat Page Component ---
+// --- In client/src/App.js ---
+
 const ChatPage = ({ student, currentUser, onBack, onChatOpened }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -276,7 +278,8 @@ const ChatPage = ({ student, currentUser, onBack, onChatOpened }) => {
   const scrollRef = useRef();
 
   useEffect(() => {
-    saxios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    // --- FIX ---: Corrected this block to properly initialize the socket
+    socket.current = io(process.env.REACT_APP_SOCKET_URL || "ws://localhost:5000");
     socket.current.on("getMessage", (data) => {
       setMessages((prev) => [...prev, { senderId: data.senderId, text: data.text, createdAt: Date.now() }]);
     });
@@ -390,6 +393,129 @@ const ChatPage = ({ student, currentUser, onBack, onChatOpened }) => {
     </div>
   );
 };
+// const ChatPage = ({ student, currentUser, onBack, onChatOpened }) => {
+//   const [messages, setMessages] = useState([]);
+//   const [newMessage, setNewMessage] = useState('');
+//   const [conversation, setConversation] = useState(null);
+//   const [isChatLoading, setIsChatLoading] = useState(true); 
+//   const socket = useRef();
+//   const scrollRef = useRef();
+
+//   useEffect(() => {
+//     saxios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+//     socket.current.on("getMessage", (data) => {
+//       setMessages((prev) => [...prev, { senderId: data.senderId, text: data.text, createdAt: Date.now() }]);
+//     });
+//     return () => {
+//       socket.current.disconnect();
+//     };
+//   }, []);
+  
+//   useEffect(() => {
+//     if (currentUser?._id) {
+//       socket.current.emit("addUser", currentUser._id);
+//     }
+//   }, [currentUser]);
+
+//   useEffect(() => {
+//     const fetchChatData = async () => {
+//         setIsChatLoading(true);
+//         try {
+//             const convRes = await axios.post('/conversations/', { senderId: currentUser._id, receiverId: student._id });
+//             const currentConversation = convRes.data;
+//             setConversation(currentConversation);
+
+//             if (currentConversation?._id) {
+//                 await axios.put(`/notifications/read/${currentConversation._id}`);
+//                 onChatOpened();
+
+//                 const messagesRes = await axios.get('/messages/' + currentConversation._id);
+//                 setMessages(messagesRes.data);
+//             }
+//         } catch (err) {
+//             console.error("Failed to load chat data", err);
+//         } finally {
+//             setIsChatLoading(false);
+//         }
+//     };
+//     if (currentUser?._id && student?._id) {
+//         fetchChatData();
+//     }
+//   }, [currentUser, student, onChatOpened]);
+
+//   useEffect(() => {
+//     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+//   }, [messages]);
+
+//   const handleSend = async (e) => {
+//     e.preventDefault();
+//     if (newMessage.trim() === '' || !conversation?._id) return;
+
+//     const message = {
+//       senderId: currentUser._id,
+//       text: newMessage,
+//       conversationId: conversation._id,
+//     };
+    
+//     socket.current.emit("sendMessage", {
+//       senderId: currentUser._id,
+//       receiverId: student._id,
+//       text: newMessage,
+//     });
+    
+//     try {
+//         const res = await axios.post('/messages', message);
+//         setMessages([...messages, res.data]);
+//         setNewMessage('');
+//     } catch (err) {
+//         console.log(err);
+//     }
+//   };
+
+//   const handleKeyPress = (e) => {
+//     if (e.key === 'Enter' && !e.shiftKey) {
+//       e.preventDefault();
+//       handleSend(e);
+//     }
+//   };
+
+//   return (
+//     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white/80 shadow-2xl rounded-t-2xl md:rounded-2xl md:my-8">
+//       <div className="flex items-center p-4 border-b border-slate-200 bg-white rounded-t-2xl">
+//         <button onClick={onBack} className="text-violet-500 hover:text-violet-700 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
+//         <img src={student.profilePic || 'https://placehold.co/100x100/cccccc/ffffff?text=Pic'} alt={student.name} className="w-10 h-10 rounded-full object-cover ml-2" />
+//         <div className="ml-3"><h2 className="font-bold text-slate-800 text-lg">{student.name}</h2><p className="text-sm text-slate-500">Online</p></div>
+//       </div>
+//       <div className="flex-grow p-4 overflow-y-auto">
+//         {messages.map((msg, index) => (
+//           <div ref={scrollRef} key={index}>
+//             <div className={`flex ${msg.senderId === currentUser._id ? 'justify-end' : 'justify-start'} mb-3`}>
+//               <div className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${msg.senderId === currentUser._id ? 'bg-rose-400 text-white rounded-br-lg' : 'bg-slate-200 text-slate-800 rounded-bl-lg'}`}>
+//                 <p>{msg.text}</p>
+//               </div>
+//             </div>
+//           </div>
+//         ))}
+//       </div>
+//       <form onSubmit={handleSend} className="p-4 bg-white border-t border-slate-200 rounded-b-2xl">
+//         <div className="flex items-center">
+//           <input 
+//             type="text" 
+//             value={newMessage} 
+//             onChange={(e) => setNewMessage(e.target.value)} 
+//             onKeyPress={handleKeyPress} 
+//             placeholder={isChatLoading ? "Loading chat..." : "Type a message..."} 
+//             className="w-full px-4 py-2 bg-slate-100 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-300 disabled:opacity-50"
+//             disabled={isChatLoading}
+//             />
+//           <button type="submit" className="ml-3 bg-violet-500 text-white p-3 rounded-full hover:bg-violet-600 transition-colors disabled:opacity-50" disabled={isChatLoading}>
+//             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+//           </button>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// };
 
 // --- Full Profile Page Component ---
 const FullProfilePage = ({ profileId, onBack, onStartChat }) => {
